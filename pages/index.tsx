@@ -1,8 +1,19 @@
 import Head from 'next/head'
 import Image from 'next/image'
 import styles from '../styles/Home.module.css'
+import axios from "axios";
+import { GetServerSideProps } from "next";
 
 export default function Home() {
+
+  const handleButtonClick = () => {
+    axios.post('/api/deluge', {
+      method: 'web.hosts',
+      params: [],
+      id: 1
+    }, {withCredentials: true });
+  }
+
   return (
     <div className={styles.container}>
       <Head>
@@ -20,6 +31,10 @@ export default function Home() {
           Get started by editing{' '}
           <code className={styles.code}>pages/index.tsx</code>
         </p>
+
+        <button onClick={handleButtonClick}>
+          Click me for data!
+        </button>
 
         <div className={styles.grid}>
           <a href="https://nextjs.org/docs" className={styles.card}>
@@ -68,4 +83,28 @@ export default function Home() {
       </footer>
     </div>
   )
+}
+
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+
+  // Authenticate with Deluge
+  let fetchResponse = await axios.post('http://10.0.0.116:8112/json', {
+    method: 'auth.login',
+    params: ['deluge'],
+    id: 1
+  }, {withCredentials: true});
+
+  console.log(fetchResponse.data);
+  if (fetchResponse.status == 200) {
+    const cookie = fetchResponse.headers && fetchResponse.headers['set-cookie'] as string[];
+
+    // Grab cookie and change the path to be equal to our proxy - We need to proxy it like this because CORS is annoying
+    // and there is currently no way to change the accepted domains on deluge's end.
+    const parsed = cookie[0].split('Path=');
+    parsed[1] = '/api/deluge';
+    cookie[0] = parsed.join('Path=');
+    ctx.res.setHeader('set-cookie', cookie as string[])
+  }
+
+  return { props: {} }
 }
