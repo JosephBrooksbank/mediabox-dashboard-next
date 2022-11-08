@@ -14,9 +14,8 @@ export default async function handler(
     res: NextApiResponse<Data>
 ) {
 
-    console.log( req.body );
     const delugeResponse = await axios.post(
-        `${process.env.DELUGE_URL}:${process.env.DELUGE_PORT}/json`,
+        `${process.env.DELUGE_URL}`,
         req.body,
         { withCredentials: true, headers: req.headers } );
 
