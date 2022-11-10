@@ -1,24 +1,18 @@
 import Head from 'next/head'
 import { GetServerSideProps } from "next";
 import { useEffect, useState } from "react";
-import deluge, { login, updateUi } from "../utils/deluge";
+import { getServerSideInitialUi, login, updateUi } from "../utils/deluge";
+import { ITorrent, TorrentCard } from "../components/TorrentCard";
 
-// TODO refactor this to contain data from update_ui
-interface torrent {
-    name: string;
-    save_path: string;
-    hash: string;
-    comment: string;
-}
 
 // Props that should come from getServerSideProps
-// TODO get update_ui data once in getServerSideProps to start
 interface IServerSideProps {
+    initialTorrentData: ITorrent[];
 }
 
 export default function Home( props: IServerSideProps ) {
 
-    const [ torrents, setTorrents ] = useState([]);
+    const [ torrents, setTorrents ] = useState(props.initialTorrentData);
 
     useEffect(() => {
         const interval = setInterval(async () => {
@@ -28,14 +22,6 @@ export default function Home( props: IServerSideProps ) {
 
         return () => clearInterval(interval);
     }, [])
-    const handleButtonClick = async () => {
-        await deluge( 'webapi.get_torrents', [] );
-        // axios.post('/api/deluge', {
-        //   method: 'webapi.get_torrents',
-        //   params: [],
-        //   id: 1
-        // }, {withCredentials: true });
-    }
 
     return (
         <div className={"bg-gray-200 h-screen"}>
@@ -50,16 +36,7 @@ export default function Home( props: IServerSideProps ) {
                     Dashboard
                 </h1>
 
-
-                <button onClick={handleButtonClick}
-                        className={"bg-blue-700 text-white rounded-xl p-2 m-3 shadow w-fit"}>
-                    Click me for data!
-                </button>
-
-                <div className={"border border-black rounded p-2 m-3"}>
-                    Torrent Data
-                  {Object.values(torrents).map((tor: any) => <div key={tor.name}><pre>{JSON.stringify(tor)}</pre></div>)}
-                </div>
+                <TorrentCard torrents={torrents}/>
 
             </main>
         </div>
@@ -69,11 +46,13 @@ export default function Home( props: IServerSideProps ) {
 export const getServerSideProps: GetServerSideProps<IServerSideProps> = async ( ctx ) => {
 
     const cookie = await login();
+    const initialTorrentData = (await getServerSideInitialUi(cookie)).data.result.torrents;
     ctx.res.setHeader( 'set-cookie', cookie as string[] )
 
 
     return {
         props: {
+            initialTorrentData
         }
     }
 }
